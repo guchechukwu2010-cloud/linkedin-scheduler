@@ -1,33 +1,27 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()  # Load environment variables
-
-# Add this for production
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
-    from fastapi import FastAPI, Request, Form, Depends, HTTPException
+from fastapi import FastAPI, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import os
 from dotenv import load_dotenv
-from typing import Optional
+from fastapi import HTTPException
 
-from database import SessionLocal, engine, User, Campaign, ConnectionLog
-import database
-from scheduler import scheduler_manager
-from linkedin_api import LinkedInAPI
 
+# Load environment variables
 load_dotenv()
+
+# Import database and scheduler
+from database import SessionLocal, engine, Base, User, Campaign, ConnectionLog
+from linkedin_api import LinkedInAPI
+from scheduler import scheduler_manager
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LinkedIn Scheduler Pro")
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Create templates directory if it doesn't exist
+os.makedirs("templates", exist_ok=True)
 
 # Templates
 templates = Jinja2Templates(directory="templates")
@@ -116,8 +110,8 @@ async def create_campaign(
 @app.get("/connect-linkedin")
 async def connect_linkedin():
     """Redirect to LinkedIn OAuth"""
-    # LinkedIn OAuth URL
-    client_id = os.getenv("LINKEDIN_CLIENT_ID", "YOUR_CLIENT_ID")
+    # LinkedIn OAuth URL (you'll need to set this up)
+    client_id = os.getenv("LINKEDIN_CLIENT_ID", "your_client_id")
     redirect_uri = "http://localhost:8000/linkedin-callback"
     scope = "r_liteprofile%20r_emailaddress%20w_member_social"
     
@@ -171,6 +165,12 @@ async def get_campaign_logs(campaign_id: int, db: Session = Depends(get_db)):
         } for log in logs
     ]}
 
+# ===== FIXED PART - THIS MUST BE AT THE BOTTOM =====
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print("=" * 50)
+    print("🚀 LinkedIn Scheduler Pro")
+    print("=" * 50)
+    print("Starting server on http://localhost:8000")
+    print("=" * 50)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
